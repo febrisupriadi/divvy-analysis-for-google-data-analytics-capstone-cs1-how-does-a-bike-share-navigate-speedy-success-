@@ -26,11 +26,67 @@ Analisis dilakukan terhadap data Divvy Bike Share untuk memahami pola penggunaan
 
 ### 📂 Struktur Folder
 
-data_raw/ -> Data mentah dari Divvy (tidak diunggah karena ukuran besar), disediakan dalam bentuk file .zip
-data_clean/ -> Data hasil pembersihan (CSV)
-scripts/ -> Kode R untuk analisis dan visualisasi
-plots/ -> Gambar hasil visualisasi (.png)
-outputs/ -> Laporan akhir (.Rmd, .docx)
+<h2 align="left">📁 Struktur Folder Proyek</h2>
+
+<div align="left">
+
+<table>
+<tr>
+<td width="35%"><b>📦 Folder / File</b></td>
+<td><b>Deskripsi</b></td>
+</tr>
+
+<tr>
+<td><code>data_raw/</code></td>
+<td>📊 <b>Data mentah dari Divvy</b> (tidak diunggah karena ukuran besar).  
+Tersedia dalam format <code>.zip</code> melalui tautan eksternal yang disertakan di laporan.</td>
+</tr>
+
+<tr>
+<td><code>data_clean/</code></td>
+<td>🧹 <b>Data hasil pembersihan</b> — file CSV yang siap untuk analisis.</td>
+</tr>
+
+<tr>
+<td><code>scripts/</code></td>
+<td>💻 <b>Kode R</b> untuk proses pembersihan data, eksplorasi, dan visualisasi.  
+Menggunakan library seperti <code>tidyverse</code>, <code>lubridate</code>, dan <code>ggplot2</code>.</td>
+</tr>
+
+<tr>
+<td><code>plots/</code></td>
+<td>📈 <b>Hasil visualisasi</b> — seluruh grafik dalam format <code>.png</code>.</td>
+</tr>
+
+<tr>
+<td><code>reports/</code></td>
+<td>📝 <b>Laporan akhir</b> dalam format <code>.Rmd</code>, <code>.docx</code>, dan <code>.pdf</code>.</td>
+</tr>
+
+<tr>
+<td><code>.gitignore</code></td>
+<td>🚫 Menyimpan daftar file yang dikecualikan dari versi kontrol Git  
+(seperti data mentah, cache, dan file sementara).</td>
+</tr>
+
+<tr>
+<td><code>divvy-analysis.Rproj</code></td>
+<td>⚙️ File konfigurasi proyek RStudio — menjaga konsistensi lingkungan kerja.</td>
+</tr>
+
+<tr>
+<td><code>README.md</code></td>
+<td>📚 Dokumentasi utama proyek — menjelaskan alur kerja, struktur folder, dan hasil analisis.</td>
+</tr>
+
+</table>
+</div>
+
+---
+
+✨ <i>Struktur ini dirancang mengikuti prinsip <b>reproducible data analysis</b>:  
+memisahkan data, kode, hasil visualisasi, dan laporan agar analisis dapat diulang dan diverifikasi dengan mudah.</i>
+
 
 
 
@@ -40,9 +96,9 @@ outputs/ -> Laporan akhir (.Rmd, .docx)
 Karena ukuran data melebihi batas GitHub (100 MB), file CSV tidak disertakan.  
 Dataset lengkap dapat diunduh melalui tautan berikut:
 
-👉 [Unduh Dataset di Google Drive](https://drive.google.com/your-link-here)
+👉 [Unduh Dataset di Posit Cloud](https://posit.cloud/content/11241914?idle=1761278638517)
 
-> Ganti `your-link-here` dengan URL sebenarnya dari file Drive kamu.
+> Studi kasus ini telah diujikan di `RStudio` / `Posit Cloud` dengan URL di atas.
 
 ---
 
@@ -55,7 +111,7 @@ Dataset lengkap dapat diunduh melalui tautan berikut:
 
 ### 👤 Penulis
 **Febri Supriadi** 
-**GCC x Telkom 2025**
+**[GCC x Telkom 2025]** 
 📍 TIF DIstrik Kalimantan Barat, Pontianak, Indonesia  
 📅 Oktober, 2025  
 🔗 [GitHub Repository](https://github.com/febrisupriadi/divvy-analysis-for-google-data-analytics-capstone-cs1-how-does-a-bike-share-navigate-speedy-success-)
@@ -70,7 +126,7 @@ Semua data bersumber dari **Divvy Bike Share (Motivate International Inc.)** mel
 
 ### 🧠 Catatan
 Beberapa file besar telah dihapus dari versi Git untuk mematuhi batas ukuran GitHub.  
-Untuk menjalankan ulang analisis, pastikan Anda menaruh dataset mentah di folder:
+Untuk menjalankan ulang analisis, pastikan Anda menaruh dataset mentah di folder: <td><code>data_clean/</code></td>
 
 
 ---
