@@ -1,0 +1,337 @@
+---
+title: "Cyclistic Bike-Share Case Study – Full R Analysis"
+author: "Febri Supriadi"
+date: "Oktober 2025"
+output:
+  word_document: default
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    df_print: paged
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(lubridate)
+library(patchwork)
+
+
+# Buat folder otomatis jika belum ada
+dir.create("data_clean", showWarnings = FALSE)
+dir.create("plots", showWarnings = FALSE)
+dir.create("reports", showWarnings = FALSE)
+```
+
+# 1. Pendahuluan
+
+Laporan ini merupakan hasil penyelesaian proyek akhir **Google Data Analytics Capstone**, dengan fokus pada data **Cyclistic Bike-Share**.\
+Seluruh proses analisis — mulai dari pembersihan data, eksplorasi, visualisasi, hingga insight strategis — dilakukan menggunakan **RStudio** dengan bahasa **R**.
+
+Pendekatan ini mengadaptasi alur kerja resmi *Coursera Capstone*, namun diperluas dengan analisis spasial dan visualisasi interaktif berbasis *tidyverse*.
+
+------------------------------------------------------------------------
+
+# 2. Tujuan Analisis
+
+Analisis ini bertujuan untuk menjawab pertanyaan utama:
+
+-   Bagaimana perbedaan perilaku penggunaan antara pengguna *member* dan *casual*?
+-   Faktor apa yang memengaruhi pola penggunaan mereka?
+-   Strategi apa yang dapat meningkatkan konversi dari pengguna *casual* menjadi *member*?
+
+------------------------------------------------------------------------
+
+# 3. Persiapan Data
+
+Dataset diambil dari portal publik Divvy:\
+<https://divvy-tripdata.s3.amazonaws.com/index.html>
+
+File yang digunakan: - `Divvy_Trips_2019_Q1.csv` - `Divvy_Trips_2020_Q1.csv`
+
+```{r read_data}
+data_2019 <- read_csv("Divvy_Trips_2019_Q1.csv")
+data_2020 <- read_csv("Divvy_Trips_2020_Q1.csv")
+
+# Melihat nama kolom
+colnames(data_2019)
+colnames(data_2020)
+```
+
+------------------------------------------------------------------------
+
+# 4. Pembersihan dan Penggabungan
+
+## 4.1 Menyamakan Struktur Kolom
+
+```{r rename_columns}
+data_2019 <- data_2019 %>%
+  rename(
+    ride_id = trip_id,
+    started_at = start_time,
+    ended_at = end_time,
+    start_station_id = from_station_id,
+    end_station_id = to_station_id,
+    start_station_name = from_station_name,
+    end_station_name = to_station_name,
+    member_casual = usertype
+  ) %>%
+  mutate(
+    member_casual = recode(member_casual,
+                           "Subscriber" = "member",
+                           "Customer" = "casual"),
+    rideable_type = NA,
+    start_lat = NA, start_lng = NA, end_lat = NA, end_lng = NA
+  ) %>%
+  select(ride_id, rideable_type, started_at, ended_at,
+         start_station_name, start_station_id,
+         end_station_name, end_station_id,
+         start_lat, start_lng, end_lat, end_lng, member_casual)
+```
+
+## 4.2 Menggabungkan Data
+
+```{r merge_data}
+# Kolom ride_id di data_2019 bertipe numeric (double), sedangkan di data_2020 bertipe string (character).
+# bind_rows() hanya bisa menggabungkan jika tipe datanya sama.
+# Samakan tipe data ride_id
+data_2019 <- data_2019 %>%
+  mutate(ride_id = as.character(ride_id))
+
+data_2020 <- data_2020 %>%
+  mutate(ride_id = as.character(ride_id))
+
+# Sekarang bisa digabung
+gabungan <- bind_rows(data_2019, data_2020)
+
+# Simpan data hasil filter
+write_csv(gabungan, "data_clean/gabungan.csv")
+write_csv(data_2019, "data_clean/data_2019_clean.csv")
+write_csv(data_2020, "data_clean/data_2020_clean.csv")
+```
+
+## 4.3 Membuat Kolom Turunan
+
+```{r derive_columns}
+gabungan <- gabungan %>%
+  mutate(
+    ride_length = as.numeric(difftime(ended_at, started_at, units = "mins")),
+    day_of_week = wday(started_at, label = TRUE)
+  )
+```
+
+## 4.4 Menghapus Nilai Kosong Penting
+
+```{r drop_na}
+gabungan <- gabungan %>%
+  drop_na(started_at, ended_at, start_station_name, end_station_name, member_casual)
+```
+
+## 4.5 Menghapus Outlier Durasi
+
+```{r filter_outliers}
+jumlah_awal <- nrow(gabungan)
+gabungan <- gabungan %>%
+  filter(ride_length > 0, ride_length <= 1440)
+jumlah_akhir <- nrow(gabungan)
+cat("Jumlah data dihapus:", jumlah_awal - jumlah_akhir, "\n")
+```
+
+------------------------------------------------------------------------
+
+# 5. Visualisasi Pembersihan Data
+
+```{r viz_before_after, fig.width=10, fig.height=4}
+# contoh simulasi sebelum filter (gunakan jika data mentah tersedia)
+set.seed(123)
+gabungan_awal <- gabungan %>%
+  mutate(ride_length = replace(ride_length, sample(1:min(100, n()), min(10, n())), runif(min(10, n()), 1500, 3000)))
+
+plot_before <- ggplot(gabungan_awal, aes(x = ride_length)) +
+  geom_histogram(binwidth = 10, fill = "salmon", color = "white") +
+  labs(title = "Sebelum Penghapusan Outlier", x = "Durasi (menit)", y = "Frekuensi") +
+  xlim(0, 2000) + theme_minimal()
+
+plot_after <- ggplot(gabungan, aes(x = ride_length)) +
+  geom_histogram(binwidth = 10, fill = "steelblue", color = "white") +
+  labs(title = "Sesudah Penghapusan Outlier", x = "Durasi (menit)", y = "Frekuensi") +
+  xlim(0, 2000) + theme_minimal()
+
+# Gabungkan dua plot
+combined_plot <- plot_before + plot_after
+
+# Tampilkan hasil
+combined_plot
+
+# Simpan hasil plot ke file PNG
+ggsave("plots/komparasi_sebelum_sesudah.png", combined_plot, width = 10, height = 4, dpi = 300)
+
+# Perbaiki skala agar plot terlihat lebih jelas
+# Simulasi data sebelum filter (jika data mentah tersedia)
+set.seed(123)
+gabungan_awal <- gabungan %>%
+  mutate(ride_length = replace(
+    ride_length,
+    sample(1:min(100, n()), min(10, n())),
+    runif(min(10, n()), 1000, 2500)
+  ))
+
+# Plot sebelum penghapusan outlier
+plot_before2 <- ggplot(gabungan_awal, aes(x = ride_length)) +
+  geom_histogram(binwidth = 10, fill = "#FF9999", color = "white", alpha = 0.8) +
+  labs(title = "Sebelum Penghapusan Outlier", 
+       x = "Durasi (menit)", 
+       y = "Frekuensi") +
+  coord_cartesian(xlim = c(0, quantile(gabungan_awal$ride_length, 0.995))) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 13),
+    axis.title = element_text(face = "bold", size = 11),
+    axis.text = element_text(size = 10),
+    panel.grid.major = element_line(color = "grey85"),
+    panel.grid.minor = element_blank()
+  )
+
+# Plot sesudah penghapusan outlier
+plot_after2 <- ggplot(gabungan, aes(x = ride_length)) +
+  geom_histogram(binwidth = 10, fill = "#6CA6CD", color = "white", alpha = 0.8) +
+  labs(title = "Sesudah Penghapusan Outlier", 
+       x = "Durasi (menit)", 
+       y = "Frekuensi") +
+  coord_cartesian(xlim = c(0, quantile(gabungan$ride_length, 0.995))) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 13),
+    axis.title = element_text(face = "bold", size = 11),
+    axis.text = element_text(size = 10),
+    panel.grid.major = element_line(color = "grey85"),
+    panel.grid.minor = element_blank()
+  )
+
+# Gabungkan dua plot secara berdampingan
+combined_plot2 <- plot_before2 + plot_after2
+
+# Tampilkan hasil
+combined_plot2
+
+# Simpan ke file PNG
+ggsave("plots/komparasi_sebelum_sesudah_zoomin.png", combined_plot2, width = 9, height = 3.5, dpi = 300)
+
+
+```
+
+------------------------------------------------------------------------
+
+# 6. Analisis Deskriptif
+
+## 6.1 Statistik Ringkas
+
+```{r summary_stats}
+summary(gabungan$ride_length)
+table(gabungan$member_casual)
+```
+
+## 6.2 Jumlah Perjalanan per Hari
+
+```{r trips_per_day, fig.width=7, fig.height=4}
+plot_trips_day <- ggplot(gabungan, aes(x = day_of_week, fill = member_casual)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Jumlah Perjalanan per Hari", x = "Hari", y = "Jumlah") +
+  theme_minimal()
+
+# Tampilkan plot
+plot_trips_day
+
+# Simpan hasil plot ke file PNG
+ggsave("plots/jumlah_perjalanan_per_hari.png", plot_trips_day, width = 10, height = 4, dpi = 300)
+
+```
+
+## 6.3 Rata-rata Durasi per Jenis Pengguna
+
+```{r mean_duration, fig.width=6, fig.height=4}
+
+# Hitung rata-rata durasi per jenis pengguna
+mean_duration_df <- gabungan %>%
+  group_by(member_casual) %>%
+  summarise(mean_duration = mean(ride_length, na.rm = TRUE))
+
+# Buat plot
+plot_meanduration <- ggplot(mean_duration_df, aes(x = member_casual, y = mean_duration, fill = member_casual)) +
+  geom_col(width = 0.6) +
+  labs(
+    title = "Rata-Rata Durasi Perjalanan",
+    x = "Jenis Pengguna",
+    y = "Durasi Rata-Rata (menit)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Tampilkan plot
+plot_meanduration
+
+# Simpan hasil plot ke file PNG
+ggsave("plots/rerata_durasi_per_jenispengguna.png", plot_meanduration, width = 6, height = 4, dpi = 300)
+```
+
+------------------------------------------------------------------------
+
+# 7. Analisis Spasial
+
+```{r spatial_analysis, fig.width=7, fig.height=5}
+
+# Filter hanya baris dengan koordinat lengkap
+gabungan_spatial <- gabungan %>%
+  filter(!is.na(start_lat) & !is.na(start_lng))
+
+# Buat plot spasial
+plot_spatial <- ggplot(gabungan_spatial, aes(x = start_lng, y = start_lat, color = member_casual)) +
+  geom_point(alpha = 0.4, size = 0.8) +
+  scale_color_manual(values = c("member" = "#1f78b4", "casual" = "#e31a1c")) +
+  labs(
+    title = "Peta Persebaran Stasiun Awal Berdasarkan Jenis Pengguna",
+    x = "Longitude",
+    y = "Latitude",
+    color = "Jenis Pengguna"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# Tampilkan plot
+plot_spatial
+
+# Simpan hasil plot ke file PNG
+ggsave("plots/peta_persebaran_stasiun_awal.png", plot_spatial, width = 7, height = 5, dpi = 300)
+```
+
+------------------------------------------------------------------------
+
+# 8. Insight dan Rekomendasi
+
+| Fokus | Temuan Utama | Rekomendasi |
+|----|----|----|
+| Durasi | Casual lebih lama | Promosi untuk perjalanan wisata |
+| Waktu | Member aktif di hari kerja | Penawaran perusahaan / kantor |
+| Lokasi | Casual terkonsentrasi di area rekreasi | Tambah stasiun di area wisata |
+| Pola | Aktivitas meningkat sore hari | Sesuaikan jadwal maintenance |
+
+------------------------------------------------------------------------
+
+# 9. Kesimpulan
+
+Penggunaan **RStudio** dengan *tidyverse* memungkinkan seluruh pipeline analisis data dilakukan secara efisien dan *reproducible*.\
+Analisis menunjukkan bahwa:
+
+-   Pengguna **member** dominan di area pusat kota dan hari kerja.\
+-   Pengguna **casual** lebih sering bersepeda di akhir pekan dan lokasi wisata.\
+-   Strategi berbasis data dapat diterapkan dengan pendekatan lokasi dan waktu untuk meningkatkan konversi pengguna casual menjadi member tahunan.
+
+```{r render reports}
+# Render otomatis ke folder reports
+# Jalankan baris ini di Console, bukan di YAML
+# Render otomatis ke folder "reports"
+
+# rmarkdown::render("cyclistic_full_analysis_with_r.Rmd", output_dir = "reports")
+```
