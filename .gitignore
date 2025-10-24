@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
+data_clean/*.csv
+Divvy_Trips_2020_Q1.csv
