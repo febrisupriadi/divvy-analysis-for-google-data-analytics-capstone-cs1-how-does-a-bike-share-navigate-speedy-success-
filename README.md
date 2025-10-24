@@ -1,4 +1,4 @@
-# 🚲 Divvy Analysis for Google Data Analytics Capstone – Case Study 1  
+# 🚲 Divvy Analysis for Google Data Analytics Capstone – Case Study 1 With R
 ## How Does a Bike-Share Navigate Speedy Success?
 
 ### 📘 Deskripsi
